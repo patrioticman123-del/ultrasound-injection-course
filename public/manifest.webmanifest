@@ -1,0 +1,16 @@
+{
+  "name": "超音波導引注射課程",
+  "short_name": "超音波注射課程",
+  "description": "可離線搜尋與閱讀的超音波導引注射臨床筆記庫",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f0e6",
+  "theme_color": "#103f49",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "publicCourses": 109,
+  "uniquePublicIds": 109,
+  "uniquePublicTitles": 109,
+  "publicSegments": 1100,
+  "emptyTimelineCourses": [],
+  "invalidPublicTitles": [],
+  "authors": [
+    {
+      "id": "stanley-lam",
+      "techniques": 9,
+      "bibliography": 29
+    },
+    {
+      "id": "ke-vin-chang",
+      "techniques": 9,
+      "bibliography": 29
+    }
+  ],
+  "invalidPapers": [],
+  "invalidTechniques": [],
+  "imageManifest": 36,
+  "missingPublicImages": [],
+  "missingOutImages": [],
+  "publicOutDataIdentical": true,
+  "replacementCharacters": 0,
+  "passed": true
+}
