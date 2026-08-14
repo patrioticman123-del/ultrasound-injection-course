@@ -124,17 +124,19 @@ function FloatingViewer({ media, onClose }) {
 
 function MediaCard({ media, onPlayTimeline, onOpenMedia }) {
   const href = media.url || media.href || media.sourceUrl;
+  const imageSrc = media.localImage || media.imageUrl;
   const yt = youtubeId(href);
   const vm = vimeoId(href);
   const timeline = media.timeline;
   return (
     <article className="media-card">
-      {(media.localImage || media.imageUrl) && (
+      {imageSrc && onOpenMedia && (
         <button className="media-image-button" onClick={() => onOpenMedia?.({ kind: "image", src: media.localImage || media.imageUrl, alt: media.alt, title: media.title || media.caption })} aria-label={`懸浮查看 ${media.title || media.caption || "引用圖版"}`}>
-          <img src={media.localImage || media.imageUrl} alt={media.alt || media.caption || media.title || "引用圖版"} loading="lazy" />
+          <img src={imageSrc} alt={media.alt || media.caption || media.title || "引用圖版"} loading="lazy" />
           <span>懸浮查看圖版</span>
         </button>
       )}
+      {imageSrc && !onOpenMedia && <img className="media-static-image" src={imageSrc} alt={media.alt || media.caption || media.title || "引用圖版"} loading="lazy" />}
       <div className="media-copy">
         <span className="media-badge">{media.badge || (media.kind === "figure" ? "原文圖版" : "原文／作者影片")}</span>
         <h4>{media.title || media.caption}</h4>
@@ -143,7 +145,7 @@ function MediaCard({ media, onPlayTimeline, onOpenMedia }) {
         {media.license && <small>{media.license}</small>}
         {href && <a href={href} target="_blank" rel="noreferrer">開啟原始來源 ↗</a>}
       </div>
-      {(yt || vm) && <div className="embedded-media-block"><button className="float-media-button" onClick={() => onOpenMedia?.({ kind: "video", provider: yt ? "youtube" : "vimeo", videoUrl: href, title: media.title || media.caption })}>懸浮播放影片</button><InlineMedia provider={yt ? "youtube" : "vimeo"} videoUrl={href} title={media.title || media.caption} /></div>}
+      {(yt || vm) && <div className="embedded-media-block">{onOpenMedia && <button className="float-media-button" onClick={() => onOpenMedia({ kind: "video", provider: yt ? "youtube" : "vimeo", videoUrl: href, title: media.title || media.caption })}>懸浮播放影片</button>}<InlineMedia provider={yt ? "youtube" : "vimeo"} videoUrl={href} title={media.title || media.caption} /></div>}
       {timeline?.segments?.length > 0 && (
         <div className="media-timeline">
           <h4>作者影片逐段筆記</h4>
@@ -174,7 +176,7 @@ function PublicDetail({ course, onOpenMedia }) {
         <div><small>長度</small><strong>{formatDuration(course.durationSeconds)}</strong></div>
       </div>
       <div className="embedded-media-block">
-        <button className="float-media-button" onClick={() => onOpenMedia?.({ kind: "video", provider: course.provider, videoUrl: course.videoUrl, embedUrl: course.embedUrl, start: 0, title: course.title })}>懸浮播放影片</button>
+        {onOpenMedia && <button className="float-media-button" onClick={() => onOpenMedia({ kind: "video", provider: course.provider, videoUrl: course.videoUrl, embedUrl: course.embedUrl, start: 0, title: course.title })}>懸浮播放影片</button>}
         <InlineMedia provider={course.provider} videoUrl={course.videoUrl} embedUrl={course.embedUrl} start={0} title={course.title} />
       </div>
       <div className="source-actions">
@@ -184,7 +186,7 @@ function PublicDetail({ course, onOpenMedia }) {
       {course.sourceNote && <p className="source-note">{course.sourceNote}</p>}
       <div className="chips">{[...(course.regions || []), ...(course.techniques || [])].filter(Boolean).map((item) => <span key={item}>{item}</span>)}</div>
       <div className="section-heading"><div><small>TIMELINE</small><h2>完整影片時間軸</h2></div><strong>{course.segments.length} 段</strong></div>
-      <SegmentList segments={course.segments} onPlay={course.embedUrl || course.provider === "youtube" || course.provider === "vimeo" ? playAt : null} />
+      <SegmentList segments={course.segments} onPlay={onOpenMedia && (course.embedUrl || course.provider === "youtube" || course.provider === "vimeo") ? playAt : null} />
     </article>
   );
 }
@@ -216,7 +218,7 @@ function TechniqueDetail({ technique, onOpenMedia }) {
         {technique.evidenceBoundary && <InfoList title="證據界線" items={[technique.evidenceBoundary]} />}
       </div>
       <div className="chips">{technique.tags?.map((tag) => <span key={tag}>{tag}</span>)}</div>
-      {technique.media?.length > 0 && <><div className="section-heading"><div><small>FIGURES & MEDIA</small><h2>原文圖版與影片</h2></div><strong>{technique.media.length} 項</strong></div><div className="media-grid">{technique.media.map((media, index) => <MediaCard key={`${media.contentId || media.title}-${index}`} media={media} onPlayTimeline={playTimeline} onOpenMedia={onOpenMedia} />)}</div></>}
+      {technique.media?.length > 0 && <><div className="section-heading"><div><small>FIGURES & MEDIA</small><h2>原文圖版與影片</h2></div><strong>{technique.media.length} 項</strong></div><div className="media-grid">{technique.media.map((media, index) => <MediaCard key={`${media.contentId || media.title}-${index}`} media={media} onPlayTimeline={onOpenMedia ? playTimeline : null} onOpenMedia={onOpenMedia} />)}</div></>}
     </article>
   );
 }
@@ -405,11 +407,11 @@ export default function Home() {
         </aside>
         <section className={`content ${detailOpen ? "detail-open" : "detail-closed"}`}>
           {detailOpen && <button className="mobile-detail-toggle" onClick={closeDetail}><strong>{section === "public" ? selectedCourse?.title : selectedAuthorItem?.title}</strong><span>收合文章</span></button>}
-          {detailOpen && (section === "public" ? <PublicDetail course={selectedCourse} onOpenMedia={setFloatingMedia} /> : <AuthorDetail author={activeAuthor} mode={authorMode} selected={selectedAuthorItem} onOpenMedia={setFloatingMedia} />)}
+          {detailOpen && (section === "public" ? <PublicDetail course={selectedCourse} onOpenMedia={isMobile ? null : setFloatingMedia} /> : <AuthorDetail author={activeAuthor} mode={authorMode} selected={selectedAuthorItem} onOpenMedia={isMobile ? null : setFloatingMedia} />)}
         </section>
       </section>
 
-      <FloatingViewer media={floatingMedia} onClose={() => setFloatingMedia(null)} />
+      {!isMobile && <FloatingViewer media={floatingMedia} onClose={() => setFloatingMedia(null)} />}
     </main>
   );
 }
