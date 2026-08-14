@@ -59,6 +59,7 @@ button { cursor: pointer; }
 .section-tabs .active span { color: rgba(255,255,255,.68); }
 
 .mobile-drawer-toggle { display: none; }
+.mobile-detail-toggle { display: none; }
 .workspace { height: calc(100vh - 76px); min-height: 720px; display: grid; grid-template-columns: minmax(330px, 28vw) 1fr; }
 .sidebar { padding: 22px 18px 0; display: flex; flex-direction: column; overflow: hidden; background: var(--cream); border-right: 1px solid #cbd3cd; }
 .author-mode-tabs { margin-bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; flex: 0 0 auto; }
@@ -139,7 +140,9 @@ button { cursor: pointer; }
 .paper-note p { margin: 0; line-height: 1.8; }
 .media-grid { display: grid; gap: 24px; }
 .media-card { overflow: hidden; border: 1px solid var(--line); background: #faf9f4; box-shadow: 0 12px 32px rgba(18,52,58,.08); }
-.media-card > img { width: 100%; max-height: 540px; display: block; object-fit: contain; background: white; border-bottom: 1px solid var(--line); }
+.media-image-button { width: 100%; padding: 0; position: relative; border: 0; display: block; background: white; }
+.media-image-button img { width: 100%; max-height: 540px; display: block; object-fit: contain; background: white; border-bottom: 1px solid var(--line); }
+.media-image-button span { position: absolute; right: 12px; bottom: 12px; padding: 8px 11px; color: white; background: rgba(8, 53, 62, .9); font-size: .75em; font-weight: 850; box-shadow: 0 5px 18px rgba(0,0,0,.2); }
 .media-copy { padding: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .media-copy h4 { margin: 0; font-size: 1.12em; line-height: 1.5; }
 .media-copy p { margin: 0; line-height: 1.7; }
@@ -147,11 +150,26 @@ button { cursor: pointer; }
 .media-copy a { color: var(--teal); font-weight: 850; }
 .media-badge { color: var(--orange); font-size: .7em; font-weight: 900; letter-spacing: .08em; }
 .media-card .video-frame { box-shadow: none; }
+.embedded-media-block { position: relative; }
+.float-media-button { position: absolute; z-index: 3; top: 10px; right: 10px; padding: 9px 12px; border: 0; color: white; background: rgba(8, 127, 124, .94); font-size: .76em; font-weight: 900; box-shadow: 0 6px 18px rgba(0,0,0,.22); }
 .media-timeline { padding: 10px 20px 24px; }
 .media-timeline > h4 { margin: 12px 0; }
 .media-timeline .segment-content { margin-left: 0; }
 .author-player { margin-bottom: 32px; }
 .empty { min-height: 65vh; display: grid; place-items: center; color: var(--muted); }
+
+.floating-viewer { width: min(520px, calc(100vw - 32px)); position: fixed; z-index: 100; right: 22px; bottom: 22px; overflow: hidden; color: white; background: #081f25; border: 1px solid rgba(255,255,255,.2); box-shadow: 0 24px 70px rgba(0,0,0,.42); }
+.floating-viewer.minimized { width: min(390px, calc(100vw - 32px)); }
+.floating-viewer-bar { min-height: 48px; display: grid; grid-template-columns: 1fr 44px 44px; align-items: stretch; background: var(--deep); border-bottom: 1px solid rgba(255,255,255,.16); }
+.floating-viewer-bar button { border: 0; color: white; background: transparent; }
+.floating-viewer-title { min-width: 0; padding: 8px 12px; display: flex; align-items: center; gap: 9px; text-align: left; }
+.floating-viewer-title span { padding: 3px 6px; color: var(--deep); background: var(--mint); font-size: .65rem; font-weight: 900; }
+.floating-viewer-title strong { overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.floating-viewer-minimize, .floating-viewer-close { font-size: 1.25rem; }
+.floating-viewer-minimize:hover, .floating-viewer-close:hover { background: rgba(255,255,255,.12); }
+.floating-viewer-body { max-height: min(58vh, 430px); overflow: auto; background: #081f25; }
+.floating-viewer-body .video-frame { box-shadow: none; }
+.floating-viewer-body > img { width: 100%; max-height: min(58vh, 430px); display: block; object-fit: contain; background: #fff; }
 
 footer { padding: 22px clamp(20px, 4vw, 64px); display: flex; justify-content: space-between; gap: 30px; color: white; background: #0b3038; font-size: .78rem; line-height: 1.65; }
 footer p { max-width: 850px; margin: 0; opacity: .74; }
@@ -174,9 +192,7 @@ footer a { color: #78ded4; flex: 0 0 auto; }
   .font-controls span { width: 46px; }
   .hero { padding: 38px 20px; gap: 30px; }
   .hero h1 { font-size: clamp(3rem, 16vw, 5rem); }
-  .stats { grid-template-columns: 1fr; }
-  .stats div { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.28); }
-  .stats div:last-child { border-bottom: 0; }
+  .stats { display: none; }
   .section-tabs { padding: 0; grid-template-columns: 1fr; }
   .section-tabs button, .section-tabs button:first-child { min-height: 64px; border-left: 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .mobile-drawer-toggle { width: 100%; min-height: 52px; display: block; position: sticky; top: 0; z-index: 40; border: 0; color: white; background: var(--orange); font-weight: 900; }
@@ -185,6 +201,10 @@ footer a { color: #78ded4; flex: 0 0 auto; }
   .sidebar.open { display: flex; }
   .entry-list { min-height: 180px; }
   .content { overflow: visible; }
+  .content.detail-closed { display: none; }
+  .mobile-detail-toggle { width: 100%; min-height: 58px; padding: 12px 16px; border: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; color: white; background: var(--deep); text-align: left; }
+  .mobile-detail-toggle strong { line-height: 1.4; }
+  .mobile-detail-toggle span { flex: 0 0 auto; color: #aef4e9; font-size: .75rem; font-weight: 850; }
   .article-reader { padding: 34px 20px 76px; }
   .article-reader > h1, .article-reader > h1.paper-heading { font-size: calc(2rem * var(--reader-scale)); }
   .author-banner { padding: 26px 20px; }
@@ -195,6 +215,10 @@ footer a { color: #78ded4; flex: 0 0 auto; }
   .segment-content { margin-left: 0; padding: 17px; }
   .media-copy { padding: 16px; }
   .media-timeline { padding: 8px 12px 18px; }
+  .floating-viewer { width: calc(100vw - 20px); right: 10px; bottom: 10px; }
+  .floating-viewer.minimized { width: calc(100vw - 20px); }
+  .floating-viewer-body { max-height: 42vh; }
+  .floating-viewer-body > img { max-height: 42vh; }
   footer { flex-direction: column; }
 }
 
