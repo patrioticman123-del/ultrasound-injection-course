@@ -1,4 +1,4 @@
-const CACHE_NAME = "echo-ultrasound-20260814-v3";
+const CACHE_NAME = "echo-ultrasound-20260814-v4";
 const CORE_FILES = [
   "/",
   "/archive-data.json",
@@ -40,6 +40,15 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
+    if (event.request.mode === "navigate") {
+      try {
+        const response = await fetch(event.request);
+        if (response.ok) await cache.put("/", response.clone());
+        return response;
+      } catch (error) {
+        return cache.match("/");
+      }
+    }
     const cached = await cache.match(event.request, { ignoreSearch: event.request.mode === "navigate" });
     if (cached) return cached;
     try {
