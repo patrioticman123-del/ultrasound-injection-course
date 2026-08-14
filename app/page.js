@@ -410,7 +410,6 @@ export default function Home() {
       </section>
 
       <FloatingViewer media={floatingMedia} onClose={() => setFloatingMedia(null)} />
-      <footer><p>{data.archive.notice}</p><a href={data.archive.sourceUrl} target="_blank" rel="noreferrer">原始公開網站 ↗</a></footer>
     </main>
   );
 }
