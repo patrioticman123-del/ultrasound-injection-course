@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const FONT_SCALES = [0.9, 1, 1.15, 1.3, 1.45];
 const AUTHOR_MODES = [
@@ -93,14 +93,48 @@ function InfoList({ title, items }) {
   return <section className="info-list"><h4>{title}</h4><ul>{values.map((item, index) => <li key={index}>{item}</li>)}</ul></section>;
 }
 
-function MediaCard({ media, onPlayTimeline }) {
+function FloatingViewer({ media, onClose }) {
+  const [minimized, setMinimized] = useState(false);
+
+  useEffect(() => setMinimized(false), [media]);
+  if (!media) return null;
+
+  return (
+    <aside className={`floating-viewer ${minimized ? "minimized" : ""}`} aria-label="懸浮媒體視窗">
+      <div className="floating-viewer-bar">
+        <button className="floating-viewer-title" onClick={() => setMinimized((value) => !value)} aria-label={minimized ? "展開懸浮視窗" : "縮小懸浮視窗"}>
+          <span>{media.kind === "image" ? "圖版" : "影片"}</span>
+          <strong>{media.title || "媒體檢視"}</strong>
+        </button>
+        <button className="floating-viewer-minimize" onClick={() => setMinimized((value) => !value)} aria-label={minimized ? "展開" : "縮小"}>{minimized ? "□" : "—"}</button>
+        <button className="floating-viewer-close" onClick={onClose} aria-label="關閉懸浮視窗">×</button>
+      </div>
+      {!minimized && (
+        <div className="floating-viewer-body">
+          {media.kind === "image" ? (
+            <img src={media.src} alt={media.alt || media.title || "引用圖版"} />
+          ) : (
+            <InlineMedia provider={media.provider} videoUrl={media.videoUrl} embedUrl={media.embedUrl} start={media.start || 0} title={media.title} />
+          )}
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function MediaCard({ media, onPlayTimeline, onOpenMedia }) {
   const href = media.url || media.href || media.sourceUrl;
   const yt = youtubeId(href);
   const vm = vimeoId(href);
   const timeline = media.timeline;
   return (
     <article className="media-card">
-      {(media.localImage || media.imageUrl) && <img src={media.localImage || media.imageUrl} alt={media.alt || media.caption || media.title || "引用圖版"} loading="lazy" />}
+      {(media.localImage || media.imageUrl) && (
+        <button className="media-image-button" onClick={() => onOpenMedia?.({ kind: "image", src: media.localImage || media.imageUrl, alt: media.alt, title: media.title || media.caption })} aria-label={`懸浮查看 ${media.title || media.caption || "引用圖版"}`}>
+          <img src={media.localImage || media.imageUrl} alt={media.alt || media.caption || media.title || "引用圖版"} loading="lazy" />
+          <span>懸浮查看圖版</span>
+        </button>
+      )}
       <div className="media-copy">
         <span className="media-badge">{media.badge || (media.kind === "figure" ? "原文圖版" : "原文／作者影片")}</span>
         <h4>{media.title || media.caption}</h4>
@@ -109,7 +143,7 @@ function MediaCard({ media, onPlayTimeline }) {
         {media.license && <small>{media.license}</small>}
         {href && <a href={href} target="_blank" rel="noreferrer">開啟原始來源 ↗</a>}
       </div>
-      {(yt || vm) && <InlineMedia provider={yt ? "youtube" : "vimeo"} videoUrl={href} title={media.title || media.caption} />}
+      {(yt || vm) && <div className="embedded-media-block"><button className="float-media-button" onClick={() => onOpenMedia?.({ kind: "video", provider: yt ? "youtube" : "vimeo", videoUrl: href, title: media.title || media.caption })}>懸浮播放影片</button><InlineMedia provider={yt ? "youtube" : "vimeo"} videoUrl={href} title={media.title || media.caption} /></div>}
       {timeline?.segments?.length > 0 && (
         <div className="media-timeline">
           <h4>作者影片逐段筆記</h4>
@@ -120,16 +154,12 @@ function MediaCard({ media, onPlayTimeline }) {
   );
 }
 
-function PublicDetail({ course }) {
-  const [start, setStart] = useState(0);
-  const playerRef = useRef(null);
-
-  useEffect(() => setStart(0), [course?.id]);
+function PublicDetail({ course, onOpenMedia }) {
   if (!course) return <div className="empty">請選擇一篇課程。</div>;
 
   function playAt(seconds) {
-    setStart(Number(seconds) || 0);
-    requestAnimationFrame(() => playerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    const nextStart = Number(seconds) || 0;
+    onOpenMedia?.({ kind: "video", provider: course.provider, videoUrl: course.videoUrl, embedUrl: course.embedUrl, start: nextStart, title: course.title });
   }
 
   return (
@@ -143,12 +173,13 @@ function PublicDetail({ course }) {
         <div><small>日期</small><strong>{course.date || "未標示"}</strong></div>
         <div><small>長度</small><strong>{formatDuration(course.durationSeconds)}</strong></div>
       </div>
-      <div ref={playerRef}>
-        <InlineMedia provider={course.provider} videoUrl={course.videoUrl} embedUrl={course.embedUrl} start={start} title={course.title} />
+      <div className="embedded-media-block">
+        <button className="float-media-button" onClick={() => onOpenMedia?.({ kind: "video", provider: course.provider, videoUrl: course.videoUrl, embedUrl: course.embedUrl, start: 0, title: course.title })}>懸浮播放影片</button>
+        <InlineMedia provider={course.provider} videoUrl={course.videoUrl} embedUrl={course.embedUrl} start={0} title={course.title} />
       </div>
       <div className="source-actions">
         {course.videoUrl && <a className="source-link" href={course.videoUrl} target="_blank" rel="noreferrer">原始影片來源 ↗</a>}
-        <span>時間軸按鈕會留在本頁播放器內播放。</span>
+        <span>時間軸按鈕會在懸浮播放器開啟，方便對照筆記。</span>
       </div>
       {course.sourceNote && <p className="source-note">{course.sourceNote}</p>}
       <div className="chips">{[...(course.regions || []), ...(course.techniques || [])].filter(Boolean).map((item) => <span key={item}>{item}</span>)}</div>
@@ -158,15 +189,11 @@ function PublicDetail({ course }) {
   );
 }
 
-function TechniqueDetail({ technique }) {
-  const [activeTimeline, setActiveTimeline] = useState(null);
-  const [start, setStart] = useState(0);
+function TechniqueDetail({ technique, onOpenMedia }) {
   if (!technique) return <div className="empty">請選擇一個技術單元。</div>;
 
   function playTimeline(timeline, seconds) {
-    setActiveTimeline(timeline);
-    setStart(seconds);
-    requestAnimationFrame(() => document.querySelector(".author-player")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    onOpenMedia?.({ kind: "video", provider: timeline.provider, videoUrl: timeline.videoUrl, embedUrl: timeline.embedUrl, start: seconds, title: technique.title });
   }
 
   return (
@@ -179,7 +206,6 @@ function TechniqueDetail({ technique }) {
         <div><small>區域</small><strong>{technique.region}</strong></div>
         <div><small>研究設計</small><strong>{technique.design}</strong></div>
       </div>
-      {activeTimeline && <div className="author-player"><InlineMedia provider={activeTimeline.provider} videoUrl={activeTimeline.videoUrl} embedUrl={activeTimeline.embedUrl} start={start} title={technique.title} /></div>}
       <div className="technique-sections">
         <InfoList title="解剖定位" items={technique.anatomy} />
         <InfoList title="掃描方法" items={technique.scan} />
@@ -190,12 +216,12 @@ function TechniqueDetail({ technique }) {
         {technique.evidenceBoundary && <InfoList title="證據界線" items={[technique.evidenceBoundary]} />}
       </div>
       <div className="chips">{technique.tags?.map((tag) => <span key={tag}>{tag}</span>)}</div>
-      {technique.media?.length > 0 && <><div className="section-heading"><div><small>FIGURES & MEDIA</small><h2>原文圖版與影片</h2></div><strong>{technique.media.length} 項</strong></div><div className="media-grid">{technique.media.map((media, index) => <MediaCard key={`${media.contentId || media.title}-${index}`} media={media} onPlayTimeline={playTimeline} />)}</div></>}
+      {technique.media?.length > 0 && <><div className="section-heading"><div><small>FIGURES & MEDIA</small><h2>原文圖版與影片</h2></div><strong>{technique.media.length} 項</strong></div><div className="media-grid">{technique.media.map((media, index) => <MediaCard key={`${media.contentId || media.title}-${index}`} media={media} onPlayTimeline={playTimeline} onOpenMedia={onOpenMedia} />)}</div></>}
     </article>
   );
 }
 
-function BibliographyDetail({ paper }) {
+function BibliographyDetail({ paper, onOpenMedia }) {
   if (!paper) return <div className="empty">請選擇一篇本人署名文獻。</div>;
   return (
     <article className="reader article-reader">
@@ -208,12 +234,12 @@ function BibliographyDetail({ paper }) {
       </div>
       <a className="paper-link" href={paper.url} target="_blank" rel="noreferrer">開啟原始論文 ↗</a>
       {paper.note && <div className="paper-note"><h3>原站編輯筆記</h3><p>{paper.note}</p></div>}
-      {paper.media && <><div className="section-heading"><div><small>CITED MEDIA</small><h2>引用圖版／影片</h2></div></div><MediaCard media={paper.media} /></>}
+      {paper.media && <><div className="section-heading"><div><small>CITED MEDIA</small><h2>引用圖版／影片</h2></div></div><MediaCard media={paper.media} onOpenMedia={onOpenMedia} /></>}
     </article>
   );
 }
 
-function AuthorDetail({ author, mode, selected }) {
+function AuthorDetail({ author, mode, selected, onOpenMedia }) {
   return (
     <>
       <div className="author-banner reader">
@@ -222,7 +248,7 @@ function AuthorDetail({ author, mode, selected }) {
         <p>{author.alias}</p>
         <p>{author.editorial}</p>
       </div>
-      {mode === "techniques" ? <TechniqueDetail technique={selected} /> : <BibliographyDetail paper={selected} />}
+      {mode === "techniques" ? <TechniqueDetail technique={selected} onOpenMedia={onOpenMedia} /> : <BibliographyDetail paper={selected} onOpenMedia={onOpenMedia} />}
     </>
   );
 }
@@ -246,6 +272,9 @@ export default function Home() {
   const [authorIndex, setAuthorIndex] = useState(0);
   const [fontIndex, setFontIndex] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [floatingMedia, setFloatingMedia] = useState(null);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [online, setOnline] = useState(true);
 
@@ -276,6 +305,24 @@ export default function Home() {
     localStorage.setItem("echo-font-index", String(fontIndex));
   }, [fontIndex]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 760px)");
+    const updateLayout = (event) => setIsMobile(event.matches);
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", updateLayout);
+    return () => mediaQuery.removeEventListener("change", updateLayout);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setDetailOpen(false);
+      setDrawerOpen(true);
+    } else {
+      setDetailOpen(true);
+      setDrawerOpen(false);
+    }
+  }, [isMobile]);
+
   const activeAuthor = section.startsWith("author-") ? data?.authors[Number(section.split("-")[1])] : null;
   const items = activeAuthor?.[authorMode] || [];
   const regions = useMemo(() => {
@@ -301,15 +348,20 @@ export default function Home() {
   const selectedAuthorItem = items[authorIndex] || filteredAuthorItems[0]?.item;
 
   function changeSection(next) {
-    setSection(next); setQuery(""); setRegion("全部"); setAuthorIndex(0); setDrawerOpen(true);
+    setSection(next); setQuery(""); setRegion("全部"); setAuthorIndex(0); setDetailOpen(!isMobile); setDrawerOpen(isMobile);
   }
 
   function changeAuthorMode(next) {
-    setAuthorMode(next); setQuery(""); setRegion("全部"); setAuthorIndex(0);
+    setAuthorMode(next); setQuery(""); setRegion("全部"); setAuthorIndex(0); setDetailOpen(!isMobile);
   }
 
-  function choosePublic(id) { setPublicId(id); setDrawerOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  function chooseAuthor(index) { setAuthorIndex(index); setDrawerOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function choosePublic(id) { setPublicId(id); setDetailOpen(true); setDrawerOpen(false); }
+  function chooseAuthor(index) { setAuthorIndex(index); setDetailOpen(true); setDrawerOpen(false); }
+
+  function closeDetail() {
+    setDetailOpen(false);
+    if (isMobile) setDrawerOpen(true);
+  }
 
   async function installApp() {
     if (installPrompt) { installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null); return; }
@@ -340,7 +392,7 @@ export default function Home() {
         {data.authors.map((author, index) => <button key={author.id} className={section === `author-${index}` ? "active" : ""} onClick={() => changeSection(`author-${index}`)}><strong>{author.name}</strong><span>9 技術 · 29 文獻</span></button>)}
       </nav>
 
-      <button className="mobile-drawer-toggle" onClick={() => setDrawerOpen((value) => !value)}>{drawerOpen ? "關閉清單" : "選擇內容與搜尋"}</button>
+      <button className="mobile-drawer-toggle" onClick={() => { setDrawerOpen((value) => !value); if (!drawerOpen) setDetailOpen(false); }}>{drawerOpen ? "關閉清單" : "選擇內容與搜尋"}</button>
 
       <section className="workspace">
         <aside className={`sidebar ${drawerOpen ? "open" : ""}`}>
@@ -351,11 +403,13 @@ export default function Home() {
           <p className="result-count">目前顯示 {section === "public" ? filteredPublic.length : filteredAuthorItems.length} 筆</p>
           {section === "public" ? <PublicList courses={filteredPublic} selectedId={selectedCourse?.id} onSelect={choosePublic} /> : <AuthorList items={filteredAuthorItems.map(({ item }) => item)} mode={authorMode} selectedIndex={filteredAuthorItems.findIndex(({ originalIndex }) => originalIndex === authorIndex)} onSelect={(filteredIndex) => chooseAuthor(filteredAuthorItems[filteredIndex].originalIndex)} />}
         </aside>
-        <section className="content">
-          {section === "public" ? <PublicDetail course={selectedCourse} /> : <AuthorDetail author={activeAuthor} mode={authorMode} selected={selectedAuthorItem} />}
+        <section className={`content ${detailOpen ? "detail-open" : "detail-closed"}`}>
+          {detailOpen && <button className="mobile-detail-toggle" onClick={closeDetail}><strong>{section === "public" ? selectedCourse?.title : selectedAuthorItem?.title}</strong><span>收合文章</span></button>}
+          {detailOpen && (section === "public" ? <PublicDetail course={selectedCourse} onOpenMedia={setFloatingMedia} /> : <AuthorDetail author={activeAuthor} mode={authorMode} selected={selectedAuthorItem} onOpenMedia={setFloatingMedia} />)}
         </section>
       </section>
 
+      <FloatingViewer media={floatingMedia} onClose={() => setFloatingMedia(null)} />
       <footer><p>{data.archive.notice}</p><a href={data.archive.sourceUrl} target="_blank" rel="noreferrer">原始公開網站 ↗</a></footer>
     </main>
   );
