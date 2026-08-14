@@ -394,8 +394,6 @@ export default function Home() {
         {data.authors.map((author, index) => <button key={author.id} className={section === `author-${index}` ? "active" : ""} onClick={() => changeSection(`author-${index}`)}><strong>{author.name}</strong><span>9 技術 · 29 文獻</span></button>)}
       </nav>
 
-      <button className="mobile-drawer-toggle" onClick={() => { setDrawerOpen((value) => !value); if (!drawerOpen) setDetailOpen(false); }}>{drawerOpen ? "關閉清單" : "選擇內容與搜尋"}</button>
-
       <section className="workspace">
         <aside className={`sidebar ${drawerOpen ? "open" : ""}`}>
           {activeAuthor && <div className="author-mode-tabs">{AUTHOR_MODES.map((mode) => <button key={mode.id} className={authorMode === mode.id ? "active" : ""} onClick={() => changeAuthorMode(mode.id)}>{mode.label}<span>{activeAuthor[mode.id].length}</span></button>)}</div>}
@@ -407,11 +405,11 @@ export default function Home() {
         </aside>
         <section className={`content ${detailOpen ? "detail-open" : "detail-closed"}`}>
           {detailOpen && <button className="mobile-detail-toggle" onClick={closeDetail}><strong>{section === "public" ? selectedCourse?.title : selectedAuthorItem?.title}</strong><span>收合文章</span></button>}
-          {detailOpen && (section === "public" ? <PublicDetail course={selectedCourse} onOpenMedia={isMobile ? null : setFloatingMedia} /> : <AuthorDetail author={activeAuthor} mode={authorMode} selected={selectedAuthorItem} onOpenMedia={isMobile ? null : setFloatingMedia} />)}
+          {detailOpen && (section === "public" ? <PublicDetail course={selectedCourse} onOpenMedia={setFloatingMedia} /> : <AuthorDetail author={activeAuthor} mode={authorMode} selected={selectedAuthorItem} onOpenMedia={setFloatingMedia} />)}
         </section>
       </section>
 
-      {!isMobile && <FloatingViewer media={floatingMedia} onClose={() => setFloatingMedia(null)} />}
+      <FloatingViewer media={floatingMedia} onClose={() => setFloatingMedia(null)} />
     </main>
   );
 }
